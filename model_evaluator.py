@@ -1,66 +1,14 @@
-import pandas as pd
 import numpy as np
-import os
 from sklearn.model_selection import KFold
-from sklearn.preprocessing import StandardScaler
 from sklearn.neural_network import MLPClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score
 
-# Fase 1: Imputación de datos faltantes
-class DataImputer:
-    def __init__(self, file_path):
-        self.file_path = file_path
-        self.data = None
-    
-    def load_data(self):
-        self.data = pd.read_excel(self.file_path)
-        return self.data
-    
-    def impute_with_central_tendency(self):
-        # Extraer columnas relevantes
-        age = self.data["Age"]
-        annual_income = self.data["Annual Income (k$)"]
-        spending_score = self.data["Spending Score (1-100)"]
-        
-        # Calcular medidas de tendencia central
-        promedio_edad = round(age.mean())
-        promedio_income = round(annual_income.median())
-        promedio_spending_score = round(spending_score.median())
-        
-        # Definir valores por defecto para imputación
-        default_values = {
-            "Age": promedio_edad,
-            "Annual Income (k$)": promedio_income,
-            "Spending Score (1-100)": promedio_spending_score
-        }
-        
-        # Imputar valores faltantes
-        self.data.fillna(value=default_values, inplace=True)
-        return self.data
-
-# Fase 2: Preparación de datos para modelado
-class DataPreprocessor:
-    def __init__(self, data):
-        self.data = data
-        self.X = None
-        self.y = None
-        self.X_scaled = None
-        self.scaler = StandardScaler()
-    
-    def prepare_features_and_target(self):
-        # Seleccionar solo las variables relevantes para la predicción
-        self.X = self.data[["Age", "Annual Income (k$)", "Spending Score (1-100)"]]
-        self.y = self.data["Suitable for a bank loan"]
-        return self.X, self.y
-    
-    def scale_features(self):
-        # Escalar las características para mejorar el rendimiento de los modelos
-        self.X_scaled = self.scaler.fit_transform(self.X)
-        return self.X_scaled
-
-# Fase 3: Modelado y evaluación con cross-validation
 class ModelEvaluator:
+    """
+    Clase para evaluar diferentes modelos y configuraciones utilizando validación cruzada.
+    Implementa evaluación para MLP y Regresión Logística.
+    """
     def __init__(self, X, y):
         self.X = X
         self.y = y
@@ -72,6 +20,10 @@ class ModelEvaluator:
         self.best_lr = None
     
     def evaluate_mlp_configurations(self):
+        """
+        Evalúa diferentes configuraciones de MLP (Perceptrón Multicapa)
+        utilizando validación cruzada de 5 pliegues.
+        """
         print("\nEvaluando diferentes configuraciones de MLP...")
         
         # Definir configuraciones a evaluar para MLP
@@ -130,6 +82,10 @@ class ModelEvaluator:
         return self.best_mlp_params, self.best_mlp_score
     
     def evaluate_logistic_regression(self):
+        """
+        Evalúa diferentes configuraciones de Regresión Logística
+        utilizando validación cruzada de 5 pliegues.
+        """
         print("\nEvaluando diferentes configuraciones de Regresión Logística...")
         
         # Definir configuraciones válidas para Regresión Logística
@@ -189,6 +145,10 @@ class ModelEvaluator:
         return self.best_lr_params, self.best_lr_score
     
     def compare_models(self):
+        """
+        Compara los mejores modelos de MLP y Regresión Logística
+        y devuelve el mejor de ellos.
+        """
         print("\nComparando modelos...")
         
         if self.best_mlp_score > self.best_lr_score:
@@ -203,6 +163,10 @@ class ModelEvaluator:
         return best_model, model_name
     
     def evaluate_model_performance(self, model, model_name):
+        """
+        Evalúa el rendimiento del modelo seleccionado, calculando
+        métricas como precisión, sensibilidad y F1-score.
+        """
         # Predecir con el mejor modelo
         y_pred = model.predict(self.X)
         
@@ -233,39 +197,3 @@ class ModelEvaluator:
         print(f"Precisión (Precision): {precision:.4f}")
         print(f"Sensibilidad (Recall): {recall:.4f}")
         print(f"Puntuación F1 (F1-Score): {f1:.4f}")
-
-# Ejecución principal
-def main():
-    # Ruta al archivo de datos
-    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Mall_Customers-Missing Values.xlsx")
-    
-    # Fase 1: Imputación de datos
-    imputer = DataImputer(path)
-    imputer.load_data()
-    data_imputed = imputer.impute_with_central_tendency()
-    
-    print("\nTÉCNICA DE IMPUTACIÓN | IMPUTACIÓN CON MEDIDA DE TENDENCIA CENTRAL")
-    print(f"\n{data_imputed.head()}")
-    
-    # Fase 2: Preprocesamiento de datos
-    preprocessor = DataPreprocessor(data_imputed)
-    X, y = preprocessor.prepare_features_and_target()
-    X_scaled = preprocessor.scale_features()
-    
-    # Fase 3: Evaluación de modelos
-    evaluator = ModelEvaluator(X_scaled, y)
-    
-    # Evaluar diferentes configuraciones de MLP
-    evaluator.evaluate_mlp_configurations()
-    
-    # Evaluar diferentes configuraciones de Regresión Logística
-    evaluator.evaluate_logistic_regression()
-    
-    # Comparar modelos y obtener el mejor
-    best_model, model_name = evaluator.compare_models()
-    
-    # Evaluar el rendimiento del mejor modelo
-    evaluator.evaluate_model_performance(best_model, model_name)
-
-if __name__ == "__main__":
-    main()
